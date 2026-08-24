@@ -1,0 +1,17 @@
+[project]
+name = "spotter-freight-rate-ml"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "catboost>=1.2.10",
+    "holidays>=0.103",
+    "lightgbm>=4.7.0",
+    "matplotlib>=3.11.1",
+    "numpy>=1.26,<3",
+    "optuna>=4.9.0",
+    "pandas>=2,<3",
+    "scikit-learn>=1.9.0",
+    "xgboost>=3.2.0",
+]

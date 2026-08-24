@@ -1,0 +1,20 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+.python-version
+
+# Spotter-provided data & the assessment brief — do NOT redistribute publicly.
+# Place the provided CSVs in data/ before running (see README).
+*.csv
+# keep my required output + metrics leaderboards (no raw data)
+!validation_predictions.csv
+!results/*.csv
+freight-rate-ml-assessment.pdf
+
+# Training / kaggle scratch
+catboost_info/
+kaggle/output/
+
+# macOS
+.DS_Store
