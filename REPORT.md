@@ -21,24 +21,6 @@ Headline validation numbers (out-of-fold, time-based CV):
 | MAPE | **5.11%** |
 | R² | **0.8265** |
 
-### Same-cutoff public comparison
-
-As a secondary check, I reran the selected model using the exact chronological
-split reported by the strongest comparable public submission: train before
-September 15, 2025 and validate from September 15 through October 31. This is a
-comparison result, not the primary model-selection score above.
-
-| Result on the Sep 15 holdout | RMSE | MAE | MAPE |
-|---|---:|---:|---:|
-| **This submission** | **598.45** | **101.90** | **4.71%** |
-| Public reference | 607.05 | 126.95 | 5.65% |
-
-The public result and split are documented in
-[`S-V-J/spotter-freight-rate-ml`](https://github.com/S-V-J/spotter-freight-rate-ml/blob/eae839b7359a402521c07d9990cd9b91e0379db0/report.md).
-Only its reported methodology was used to define this comparison; the model
-implementation and evaluation here were written independently. Full provenance
-and rejected ablations are recorded in `BENCHMARK_NOTES.md`.
-
 ## 2. Data exploration - key findings
 
 - **48,000** training loads spanning **Jan-Oct 2025**; the validation set is
