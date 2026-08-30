@@ -18,3 +18,13 @@ kaggle/output/
 
 # macOS
 .DS_Store
+
+# Local learning and artifact-authoring files
+learn/
+.codex_tmp/
+tmp/
+output/
+*.inspect.ndjson
+Freight_Rate_Lessons.pptx
+Freight_Rate_Lessons/
+Freight_Rate_Prediction_Minimal/

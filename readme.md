@@ -21,6 +21,12 @@ Two deliverables are produced:
 
 See `REPORT.pdf` for the full write-up and `SPEC.md` for the design decisions.
 
+## Assessment documents
+
+- `REPORT.pdf` — full assessment report.
+- `Freight_Rate_Prediction_Minimal.pptx` — concise presentation of the approach and results.
+- `Freight_Rate_Prediction_Minimal.pdf` — PDF version of the presentation.
+
 ## Setup & run
 Requires [`uv`](https://docs.astral.sh/uv/) (Python 3.11 is pinned).
 
