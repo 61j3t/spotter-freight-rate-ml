@@ -22,17 +22,17 @@ to linear, not full of weird nonlinear jumps."
 one fixed lat/long, but it's geographically wrong. I confirmed they match the
 given distance at r = 0.9995, so they're consistent but redundant. I didn't rely
 on them."
-"Second, no missing or negative rates — the data is clean. But every model family
-converged to the same error floor, which tells me there's irreducible noise in
-the rate that no feature can explain."
+"Second, I found 292 negative weight sign errors and a detached group of 677
+likely corrupted labels. I repaired the weights and removed those labels from
+training only, while keeping every validation row in the reported score."
 
 ### 1:20 — Model choice  ·  **Cue: results/final_selection.csv (the leaderboard)**
 "I ran a full bake-off: Ridge, random forest, XGBoost, LightGBM, CatBoost, an MLP,
 and TabPFN on Kaggle. The biggest single win was predicting *log* of the rate —
-that cut my typical error, MAPE, from about 8.4% down to 5.6%. TabPFN wasn't
+that cut my typical error, MAPE, from about 8.4% down to 5.1%. TabPFN wasn't
 competitive here — it favors small datasets, and this one is large and linear."
-"My final submission is an equal-weight blend of the top three — CatBoost, Ridge,
-and XGBoost — which just edged out any single model."
+"My final submission is an equal-weight blend of the top three - LightGBM,
+CatBoost, and Ridge - which beat every single model at 629.3 RMSE."
 
 ### 1:50 — Validation & split  ·  **Cue: src/data.py `time_folds`**
 "For validation I used a *time-based* split, never a random one — that would leak

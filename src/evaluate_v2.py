@@ -6,7 +6,7 @@ import time
 import numpy as np
 import pandas as pd
 
-from .data import TARGET, time_folds
+from .data import TARGET, model_fit_index, time_folds
 from .evaluate import metrics
 from .features import fit_schema
 from .features_v2 import TargetEncoder, build_static, frame_target
@@ -37,10 +37,11 @@ def leaderboard_v2(train: pd.DataFrame, feature_set: str = "full") -> pd.DataFra
             fm = []
             t0 = time.time()
             for _m, tr_idx, va_idx in folds:
+                fit_idx = model_fit_index(train, tr_idx)
                 y_framed, inv = frame_target(y, dist, framing)
-                Xtr, Xva = _fold_matrix(static, train, tr_idx, va_idx, y_framed)
+                Xtr, Xva = _fold_matrix(static, train, fit_idx, va_idx, y_framed)
                 model = make()
-                model.fit(Xtr, y_framed[tr_idx])
+                model.fit(Xtr, y_framed[fit_idx])
                 pred = inv(model.predict(Xva), dist[va_idx])
                 fm.append(metrics(y[va_idx], pred))
             agg = {k: float(np.mean([f[k] for f in fm])) for k in fm[0]}

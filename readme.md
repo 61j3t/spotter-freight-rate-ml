@@ -12,12 +12,14 @@ Two deliverables are produced:
   December, which only has 6 shared columns.
 - **Time-based validation.** Train months are Jan–Oct 2025; every CV fold trains
   on earlier months and validates on a later one (holds out Aug, Sep, Oct).
+- **Fold-safe data repair.** Negative weights are corrected, and 677 detached
+  labels are excluded from model fitting only; every holdout row is still scored.
 - **Log-target framing** — predicting `log(rate)` sharply cut proportional error
-  (MAPE 8.4% → 5.6%).
+  (MAPE 8.4% → 5.1%).
 - **Bake-off** across Ridge, RandomForest, XGBoost, LightGBM, CatBoost, MLP, and
   TabPFN (TabPFN run separately on Kaggle GPU). Light Optuna tuning on the top 3.
-- **Final submission:** an equal-weight blend of the top 3 (CatBoost + Ridge +
-  XGBoost), which narrowly beat any single model.
+- **Final submission:** an equal-weight blend of LightGBM + CatBoost + Ridge
+  (RMSE 629.3, MAE 114.3, MAPE 5.1%), which beat every single model.
 
 See `REPORT.pdf` for the full write-up and `SPEC.md` for the design decisions.
 
@@ -29,6 +31,8 @@ See `REPORT.pdf` for the full write-up and `SPEC.md` for the design decisions.
 
 ## Setup & run
 Requires [`uv`](https://docs.astral.sh/uv/) (Python 3.11 is pinned).
+The assessment CSVs are not distributed in this public repository; place them
+under `data/` before running the pipeline.
 
 ```bash
 uv sync                       # install dependencies
@@ -36,6 +40,7 @@ uv run python -m src.run_v1   # v1 baseline leaderboard
 uv run python -m src.run_v2   # v2 rich-feature leaderboard
 uv run python -m src.tune     # light Optuna tuning (top 3)
 uv run python -m src.finalize # select model, write predictions, run scorer
+uv run python -m unittest discover -s tests -v  # focused regression tests
 ```
 
 `finalize` writes `validation_predictions.csv`, fills

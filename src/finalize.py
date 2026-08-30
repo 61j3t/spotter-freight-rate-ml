@@ -26,7 +26,15 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
 
-from .data import TARGET, load_december, load_train, load_validation, time_folds
+from .data import (
+    TARGET,
+    corrupted_label_mask,
+    load_december,
+    load_train,
+    load_validation,
+    model_fit_index,
+    time_folds,
+)
 from .evaluate import metrics
 from .features import fit_schema
 from .features_v2 import TargetEncoder, build_static, frame_target
@@ -34,6 +42,9 @@ from .features_v2 import TargetEncoder, build_static, frame_target
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "results"
 TE_COLS = ["lane", "pickup", "delivery"]
+DECEMBER_OUTPUT_COLUMNS = [
+    "pickup", "delivery", "distance", "equipment", "weight", "date", "predicted_rate"
+]
 
 
 def _params(name: str) -> dict:
@@ -81,12 +92,13 @@ def oof_selection(train, feature_set="full", framing="log"):
     mask = np.zeros(len(train), dtype=bool)
     pos = {ix: i for i, ix in enumerate(train.index)}
     for _m, tr, va in folds:
+        fit_idx = model_fit_index(train, tr)
         yf, inv = frame_target(y, dist, framing)
-        Xtr, Xva = _matrix(static, train, tr, va, yf)
+        Xtr, Xva = _matrix(static, train, fit_idx, va, yf)
         va_pos = [pos[i] for i in va]
         mask[va_pos] = True
         for name, make in candidates().items():
-            model = make(); model.fit(Xtr, yf[tr])
+            model = make(); model.fit(Xtr, yf[fit_idx])
             oof[name][va_pos] = inv(model.predict(Xva), dist[va.to_numpy()])
 
     yv = y[mask]
@@ -113,16 +125,24 @@ def _fit_predict(train, target_df, feature_set, framing, model_names):
     dist_te = target_df["distance"].to_numpy(float)
     yf, inv = frame_target(y, dist_tr, framing)
 
-    te = TargetEncoder(TE_COLS).fit(train, yf)
-    Xtr = pd.concat([static_tr, te.transform(train)], axis=1)
+    fit_idx = train.index[~corrupted_label_mask(train)]
+    te = TargetEncoder(TE_COLS).fit(train.loc[fit_idx], yf[fit_idx])
+    Xtr = pd.concat([static_tr.loc[fit_idx], te.transform(train.loc[fit_idx])], axis=1)
     Xte = pd.concat([static_te, te.transform(target_df)], axis=1)
 
     preds = []
     reg = candidates()
     for name in model_names:
-        model = reg[name](); model.fit(Xtr, yf)
+        model = reg[name](); model.fit(Xtr, yf[fit_idx])
         preds.append(inv(model.predict(Xte), dist_te))
     return np.clip(np.mean(preds, axis=0), 1e-6, None)
+
+
+def _december_output_frame(december: pd.DataFrame, predictions: np.ndarray) -> pd.DataFrame:
+    """Restore the scorer's fixed schema after internal audit preprocessing."""
+    out = december[DECEMBER_OUTPUT_COLUMNS[:-1]].copy()
+    out["predicted_rate"] = predictions
+    return out[DECEMBER_OUTPUT_COLUMNS]
 
 
 def main() -> None:
@@ -153,8 +173,7 @@ def main() -> None:
     # December (reduced features) — CatBoost-log is the reduced champion
     december = load_december()
     dpred = _fit_predict(train, december, "reduced", "log", ["CatBoost"])
-    dec_out = december.copy()
-    dec_out["predicted_rate"] = dpred
+    dec_out = _december_output_frame(december, dpred)
     dec_path = ROOT / "data" / "december_chart_inputs.csv"
     dec_out.to_csv(dec_path, index=False)
     print(f"Filled {dec_path.name} (mean=${dpred.mean():.0f})")

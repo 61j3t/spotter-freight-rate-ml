@@ -12,7 +12,10 @@ Predict `posted_rate` for freight loads. Two outputs:
 ## Data facts (from exploration)
 - Train = Jan–Oct 2025. Validation = Nov–Dec 2025 (time split by design).
 - 64 pickup cities, 64 delivery cities, 4,014 unique lanes.
-- No missing / zero / negative rates. Rate range $57 – $25,533.
+- Rate range is $57-$25,533. A detached 677-row multiplicative-error component
+  is excluded from training only; validation metrics retain every row.
+- 292 negative weights are repaired with absolute value and tracked by an audit
+  indicator. Missing weights remain available to fold-fitted imputers.
 - December lane (Lexington→Fort Wayne) appears 32× in training.
 - `validation.csv` has extra columns training also has: `pickup_lat/lon`, `delivery_lat/lon`, `market_index`, `quote_signal`.
 - December inputs have only 6 columns: `pickup, delivery, distance, equipment, weight, date`.
@@ -22,7 +25,9 @@ Predict `posted_rate` for freight loads. Two outputs:
   - **Full model** → graded 12k. Uses all columns (incl. market_index, quote_signal, lat/lon).
   - **Reduced model** → December. Uses only the 6 shared columns.
 - **Target:** predict total rate; also test a $/mile variant.
-- **Validation:** time-based split (train early months, validate the latest). Target encoding done inside CV folds (leak-safe).
+- **Validation:** time-based split (train early months, validate the latest).
+  Target encoding and label screening are fitted inside CV folds; held-out rows
+  are never filtered or altered.
 - **Metric:** RMSE decides the winner; also report MAE, MAPE, R².
 - **December fix:** calendar + seasonal (sin/cos) features only — never a raw increasing time index — so trees don't flatline on the future month.
 
@@ -35,10 +40,11 @@ Light Optuna tuning on the top 2–3 after the baseline.
 2. **v2 deep features** — geo/haversine audit (validate lat/lon vs given distance), market interactions, lane/city target encoding, weight/distance ratios, full calendar, equipment crosses → re-run, compare, prune by feature importance.
 
 ## Final submission
-RMSE winner vs a top-3 blend → submit whichever validates best.
+Equal blend of LightGBM + CatBoost + Ridge selected on all-row OOF metrics:
+RMSE 629.3, MAE 114.3, MAPE 5.1%, R² 0.826.
 
 ## Deliverables
-- Local repo `spotter-freight-rate-ml` (public-ready). **NOT pushed** — push command handed to the user.
+- Public repo `spotter-freight-rate-ml` containing assessment code and outputs only.
 - `validation_predictions.csv`.
 - PDF report (pandoc): split/validation approach + `candidate_december.png`.
 - Word-for-word Loom script + on-screen cue sheet (user records).

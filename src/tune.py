@@ -16,7 +16,7 @@ from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
 from xgboost import XGBRegressor
 
-from .data import TARGET, load_train, time_folds
+from .data import TARGET, load_train, model_fit_index, time_folds
 from .evaluate import metrics
 from .features import fit_schema
 from .features_v2 import TargetEncoder, build_static, frame_target
@@ -32,12 +32,13 @@ SEARCH_SECONDS = 150
 def _cv_rmse(make_model, static, train, folds, y, dist, framing="log"):
     fm = []
     for _m, tr, va in folds:
+        fit_idx = model_fit_index(train, tr)
         yf, inv = frame_target(y, dist, framing)
-        te = TargetEncoder(TE_COLS).fit(train.loc[tr], yf[tr])
-        Xtr = pd.concat([static.loc[tr], te.transform(train.loc[tr])], axis=1)
+        te = TargetEncoder(TE_COLS).fit(train.loc[fit_idx], yf[fit_idx])
+        Xtr = pd.concat([static.loc[fit_idx], te.transform(train.loc[fit_idx])], axis=1)
         Xva = pd.concat([static.loc[va], te.transform(train.loc[va])], axis=1)
         model = make_model()
-        model.fit(Xtr, yf[tr])
+        model.fit(Xtr, yf[fit_idx])
         pred = inv(model.predict(Xva), dist[va])
         fm.append(metrics(y[va], pred))
     return {k: float(np.mean([f[k] for f in fm])) for k in fm[0]}

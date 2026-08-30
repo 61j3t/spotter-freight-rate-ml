@@ -33,6 +33,8 @@ def build_static(df: pd.DataFrame, schema: dict, feature_set: str = "full") -> p
     b["log_distance"] = np.log1p(dist)
     b["weight"] = wt
     b["weight_per_mile"] = wt / dist.clip(lower=1)
+    b["weight_was_negative"] = df.get("weight_was_negative", 0)
+    b["weight_was_missing"] = df.get("weight_was_missing", wt.isna().astype(int))
     b["pickup_code"] = _ordinal(df["pickup"], schema["pickup"])
     b["delivery_code"] = _ordinal(df["delivery"], schema["delivery"])
     b["is_holiday"] = df["date"].dt.date.map(lambda d: d in US_HOLIDAYS).astype(int)
