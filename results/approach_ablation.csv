@@ -1,0 +1,9 @@
+candidate,RMSE,MAE,MAPE,decision
+NativeLightGBM,628.7323517346949,113.76353212331682,5.11000241024756,selected
+NativeLightGBM+LightGBM+CatBoost,629.0364661971257,114.55084107208182,5.162366814682755,rejected_blend
+Current_LightGBM+CatBoost+Ridge,629.3118484829977,114.3438404299048,5.131215070767832,replaced
+Augmented_LightGBM_log_per_mile,630.209097,124.641265,5.620549,rejected
+Augmented_LightGBM_log,630.290822,120.136229,5.437669,rejected
+Cross_fold_stack,630.362376,130.828860,5.729886,rejected
+Augmented_LightGBM_per_mile,630.709302,126.474028,5.675216,rejected
+Augmented_LightGBM_log_quote_ratio,638.140412,152.644260,7.249554,rejected

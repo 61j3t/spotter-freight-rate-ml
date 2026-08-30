@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 
 from src.data import clean_inputs, corrupted_label_mask, model_fit_index
+from src.features import fit_schema
+from src.features_native import FrequencyEncoder, build_native_static
 from src.finalize import DECEMBER_OUTPUT_COLUMNS, _december_output_frame
 
 
@@ -81,6 +83,34 @@ class DataQualityTests(unittest.TestCase):
 
         self.assertEqual(output.columns.tolist(), DECEMBER_OUTPUT_COLUMNS)
         self.assertEqual(output.loc[0, "predicted_rate"], 825.0)
+
+    def test_native_features_keep_categories_and_training_only_frequencies(self):
+        frame = pd.DataFrame(
+            {
+                "pickup": ["A", "A", "B"],
+                "delivery": ["X", "Y", "X"],
+                "distance": [100.0, 200.0, 150.0],
+                "equipment": ["Dry Van", "Reefer", "Dry Van"],
+                "weight": [10_000.0, 20_000.0, 15_000.0],
+                "date": pd.to_datetime(
+                    ["2025-01-01", "2025-01-02", "2025-01-03"]
+                ),
+                "market_index": [1.0, 1.1, 0.9],
+                "quote_signal": [2.0, 2.1, 1.9],
+                "pickup_lat": [0.0, 0.0, 1.0],
+                "pickup_lon": [0.0, 0.0, 1.0],
+                "delivery_lat": [1.0, 2.0, 1.0],
+                "delivery_lon": [1.0, 2.0, 1.0],
+            }
+        )
+
+        schema = fit_schema(frame)
+        native = build_native_static(frame, schema)
+        self.assertEqual(str(native["lane_cat"].dtype), "category")
+
+        encoder = FrequencyEncoder().fit(frame.iloc[:2])
+        transformed = encoder.transform(frame.iloc[2:])
+        self.assertEqual(float(transformed.iloc[0]["pickup_freq"]), 0.0)
 
 
 if __name__ == "__main__":

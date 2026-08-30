@@ -18,10 +18,13 @@ Two deliverables are produced:
   (MAPE 8.4% → 5.1%).
 - **Bake-off** across Ridge, RandomForest, XGBoost, LightGBM, CatBoost, MLP, and
   TabPFN (TabPFN run separately on Kaggle GPU). Light Optuna tuning on the top 3.
-- **Final submission:** an equal-weight blend of LightGBM + CatBoost + Ridge
-  (RMSE 629.3, MAE 114.3, MAPE 5.1%), which beat every single model.
+- **Final submission:** native-categorical LightGBM with training-only lane and
+  city frequencies (RMSE 628.7, MAE 113.8, MAPE 5.11%). It beat both every
+  numeric single model and the equal top-three blend.
 
 See `REPORT.pdf` for the full write-up and `SPEC.md` for the design decisions.
+See `BENCHMARK_NOTES.md` for public-reference provenance and controlled
+ablation results.
 
 ## Assessment documents
 
@@ -58,6 +61,7 @@ src/
   data.py         data loading + time-based folds
   features.py     v1 features (calendar + simple encodings)
   features_v2.py  v2 rich features + leak-safe target encoding + framings
+  features_native.py native categorical + training-only frequency features
   models.py       model roster
   evaluate.py     metrics + v1 leaderboard
   evaluate_v2.py  v2 leaderboard

@@ -40,8 +40,8 @@ Light Optuna tuning on the top 2–3 after the baseline.
 2. **v2 deep features** — geo/haversine audit (validate lat/lon vs given distance), market interactions, lane/city target encoding, weight/distance ratios, full calendar, equipment crosses → re-run, compare, prune by feature importance.
 
 ## Final submission
-Equal blend of LightGBM + CatBoost + Ridge selected on all-row OOF metrics:
-RMSE 629.3, MAE 114.3, MAPE 5.1%, R² 0.826.
+Native-categorical LightGBM selected on all-row OOF metrics after comparison
+with the equal top-three blend: RMSE 628.7, MAE 113.8, MAPE 5.11%, R² 0.8265.
 
 ## Deliverables
 - Public repo `spotter-freight-rate-ml` containing assessment code and outputs only.

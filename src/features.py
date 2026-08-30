@@ -40,9 +40,11 @@ def _calendar(df: pd.DataFrame) -> pd.DataFrame:
 def fit_schema(train: pd.DataFrame) -> dict:
     """Learn category orderings from training data so codes are consistent
     across train/validation/December. This is id-only encoding, no target."""
+    lane = train["pickup"].astype(str) + ">" + train["delivery"].astype(str)
     return {
         "pickup": sorted(train["pickup"].astype(str).unique()),
         "delivery": sorted(train["delivery"].astype(str).unique()),
+        "lane": sorted(lane.unique()),
     }
 
 

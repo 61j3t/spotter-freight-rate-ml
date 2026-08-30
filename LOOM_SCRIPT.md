@@ -31,8 +31,9 @@ training only, while keeping every validation row in the reported score."
 and TabPFN on Kaggle. The biggest single win was predicting *log* of the rate —
 that cut my typical error, MAPE, from about 8.4% down to 5.1%. TabPFN wasn't
 competitive here — it favors small datasets, and this one is large and linear."
-"My final submission is an equal-weight blend of the top three - LightGBM,
-CatBoost, and Ridge - which beat every single model at 629.3 RMSE."
+"My final submission is a native-categorical LightGBM model. Keeping pickup,
+delivery, equipment, and lane as categories beat the numeric models and their
+blend, reaching 628.7 RMSE."
 
 ### 1:50 — Validation & split  ·  **Cue: src/data.py `time_folds`**
 "For validation I used a *time-based* split, never a random one — that would leak

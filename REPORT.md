@@ -10,16 +10,16 @@ geometry: margin=2cm
 The task is to predict freight `posted_rate`. I built two models - a
 **full-feature** model for the 12,000 graded validation loads and a **reduced**
 model for the fixed December chart - validated them with a **time-based** split,
-and submitted an **equal-weight blend** of the three strongest models.
+and selected a **native-categorical LightGBM** model.
 
 Headline validation numbers (out-of-fold, time-based CV):
 
 | Metric | Value |
 |---|---|
-| RMSE | **629.3** |
-| MAE | **114.3** |
-| MAPE | **5.1%** |
-| R² | **0.826** |
+| RMSE | **628.7** |
+| MAE | **113.8** |
+| MAPE | **5.11%** |
+| R² | **0.8265** |
 
 ## 2. Data exploration - key findings
 
@@ -86,7 +86,9 @@ Two separate models are trained because the inputs differ:
   indicators, weight-per-mile, and interactions (`distance × equipment`, and
   for the full model `distance × market_index`, `distance × quote_signal`).
 - **Categorical:** equipment one-hot; **smoothed target encoding** for lane,
-  pickup and delivery (leak-safe, fitted within folds).
+  pickup and delivery (leak-safe, fitted within folds). The selected LightGBM
+  path also keeps pickup, delivery, equipment, and lane as native categorical
+  columns, with training-only frequency encodings.
 - **Target framing:** the single biggest win was predicting **log(rate)** - it
   cut MAPE from **8.4% to 5.1%** while RMSE stayed near the noise floor.
 
@@ -94,17 +96,18 @@ Two separate models are trained because the inputs differ:
 
 Roster: Ridge, RandomForest, XGBoost, LightGBM, CatBoost, MLP, and TabPFN
 (TabPFN run on Kaggle - see note below). Light Optuna tuning was used on the
-strongest candidates. The final comparison below uses the same saved
-hyperparameters after the fold-safe data corrections, so the improvement is
-attributable to the corrected data path rather than a new search budget.
+strongest candidates. The final comparison reuses the same saved LightGBM
+hyperparameters. The native-categorical variant changes the feature
+representation, not the tuning budget.
 
 | Candidate | RMSE | MAE | MAPE |
 |---|---:|---:|---:|
+| **Native-categorical LightGBM** | **628.7** | **113.8** | **5.11%** |
+| Native LightGBM + LightGBM + CatBoost | 629.0 | 114.6 | 5.16% |
 | LightGBM | 629.9 | 119.1 | 5.37% |
 | CatBoost | 630.1 | 117.1 | 5.31% |
 | Ridge | 631.6 | 124.5 | 5.62% |
 | XGBoost | 632.3 | 122.5 | 5.51% |
-| **Three-model blend** | **629.3** | **114.3** | **5.13%** |
 
 **TabPFN (Kaggle), for completeness.** The assessment machine has no GPU, so
 TabPFN ran on Kaggle. Two real constraints applied: the current package gates
@@ -119,17 +122,18 @@ training set. It is therefore reported but excluded from the final blend.
 ## 7. Final model
 
 Per the plan, I compared the best single model against an equal-weight blend of
-the top 3 on out-of-fold predictions. The **blend (LightGBM + CatBoost + Ridge)**
-won and was refit on the screened training rows to produce
-`validation_predictions.csv` (12,000 rows, mean ≈ \$2,375).
+the top 3 on out-of-fold predictions. **Native-categorical LightGBM** won at
+RMSE 628.7 versus 629.0 for the blend. It was refit on the screened training
+rows to produce `validation_predictions.csv` (12,000 rows, mean ≈ \$2,345).
 
 ## 8. Reproducibility
 
 `uv`-managed, Python 3.11 pinned. Run `uv sync` then
 `uv run python -m src.finalize` to regenerate predictions and the chart. See
-`README.md` for the full command list and `SPEC.md` for design decisions. Four
+`README.md` for the full command list and `SPEC.md` for design decisions. Five
 focused tests cover weight repair, label screening, training-only row selection,
-and the fixed December output schema. The supplied scorer validates all 12,000
+native categorical/frequency features, and the fixed December output schema.
+The supplied scorer validates all 12,000
 submission rows and all 31 December rows.
 
 ## 9. December prediction

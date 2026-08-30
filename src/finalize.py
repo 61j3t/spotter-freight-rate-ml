@@ -37,6 +37,11 @@ from .data import (
 )
 from .evaluate import metrics
 from .features import fit_schema
+from .features_native import (
+    NATIVE_CATEGORICAL_COLUMNS,
+    FrequencyEncoder,
+    build_native_static,
+)
 from .features_v2 import TargetEncoder, build_static, frame_target
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -74,6 +79,13 @@ def candidates() -> dict:
     }
 
 
+def native_lgbm() -> LGBMRegressor:
+    """LightGBM using the saved tuning budget and native category splits."""
+    return LGBMRegressor(
+        **{**_params("LightGBM"), "random_state": 42, "n_jobs": -1, "verbose": -1}
+    )
+
+
 def _matrix(static, df, tr, va, yframed):
     te = TargetEncoder(TE_COLS).fit(df.loc[tr], yframed[tr])
     Xtr = pd.concat([static.loc[tr], te.transform(df.loc[tr])], axis=1)
@@ -84,11 +96,13 @@ def _matrix(static, df, tr, va, yframed):
 def oof_selection(train, feature_set="full", framing="log"):
     schema = fit_schema(train)
     static = build_static(train, schema, feature_set)
+    native_static = build_native_static(train, schema, feature_set)
     y = train[TARGET].to_numpy(float)
     dist = train["distance"].to_numpy(float)
     folds = list(time_folds(train["date"]))
 
     oof = {name: np.full(len(train), np.nan) for name in candidates()}
+    oof["NativeLightGBM"] = np.full(len(train), np.nan)
     mask = np.zeros(len(train), dtype=bool)
     pos = {ix: i for i, ix in enumerate(train.index)}
     for _m, tr, va in folds:
@@ -100,6 +114,24 @@ def oof_selection(train, feature_set="full", framing="log"):
         for name, make in candidates().items():
             model = make(); model.fit(Xtr, yf[fit_idx])
             oof[name][va_pos] = inv(model.predict(Xva), dist[va.to_numpy()])
+
+        frequency = FrequencyEncoder().fit(train.loc[fit_idx])
+        native_train = pd.concat(
+            [native_static.loc[fit_idx], frequency.transform(train.loc[fit_idx])],
+            axis=1,
+        )
+        native_valid = pd.concat(
+            [native_static.loc[va], frequency.transform(train.loc[va])], axis=1
+        )
+        native = native_lgbm()
+        native.fit(
+            native_train,
+            yf[fit_idx],
+            categorical_feature=NATIVE_CATEGORICAL_COLUMNS,
+        )
+        oof["NativeLightGBM"][va_pos] = inv(
+            native.predict(native_valid), dist[va.to_numpy()]
+        )
 
     yv = y[mask]
     board = []
@@ -130,11 +162,38 @@ def _fit_predict(train, target_df, feature_set, framing, model_names):
     Xtr = pd.concat([static_tr.loc[fit_idx], te.transform(train.loc[fit_idx])], axis=1)
     Xte = pd.concat([static_te, te.transform(target_df)], axis=1)
 
+    native_train = native_target = None
+    if "NativeLightGBM" in model_names:
+        frequency = FrequencyEncoder().fit(train.loc[fit_idx])
+        native_train = pd.concat(
+            [
+                build_native_static(train, schema, feature_set).loc[fit_idx],
+                frequency.transform(train.loc[fit_idx]),
+            ],
+            axis=1,
+        )
+        native_target = pd.concat(
+            [
+                build_native_static(target_df, schema, feature_set),
+                frequency.transform(target_df),
+            ],
+            axis=1,
+        )
+
     preds = []
     reg = candidates()
     for name in model_names:
-        model = reg[name](); model.fit(Xtr, yf[fit_idx])
-        preds.append(inv(model.predict(Xte), dist_te))
+        if name == "NativeLightGBM":
+            model = native_lgbm()
+            model.fit(
+                native_train,
+                yf[fit_idx],
+                categorical_feature=NATIVE_CATEGORICAL_COLUMNS,
+            )
+            preds.append(inv(model.predict(native_target), dist_te))
+        else:
+            model = reg[name](); model.fit(Xtr, yf[fit_idx])
+            preds.append(inv(model.predict(Xte), dist_te))
     return np.clip(np.mean(preds, axis=0), 1e-6, None)
 
 
